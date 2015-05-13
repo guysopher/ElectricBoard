@@ -3,13 +3,21 @@
 
 #define MIN_SIGNAL 900
 #define MAX_SIGNAL 2000
-#define INT_SPEED 10
 #define MIN_SPEED 0
 #define MAX_SPEED 10000
+#define MIN_ACC_STEP 5
+#define MAX_ACC_STEP 100
+#define MIN_NTRL_STEP 0
+#define MAX_NTRL_STEP -100
+#define MIN_BRK_STEP -10
+#define MAX_BRK_STEP -2000
+
 #define LED_PIN 8
 #define MOTOR_PIN 9
 #define SERVO_PIN 6
-#define POT_PIN A0
+#define ACC_POT_PIN A2
+#define NTRL_POT_PIN A1
+#define BRK_POT_PIN A0
 
 #include <Servo.h> 
 #include <Wire.h>
@@ -19,10 +27,16 @@ Servo motor;
 Servo srv; 
 WiiChuck chuck = WiiChuck();
  
-int acc; //accelerator
+int acc_step = 10;
+int ntrl_step = -10;
+int brk_step = -100;
+
+int acc = 0; //acceleration 
 int spd = 0; //speed 
 int motor_signal; //the signal to pass to the motor
 int servo_signal; //the signal to pass to the motor
+
+boolean rdy = false;
 
 void setup() 
 { 
@@ -40,12 +54,12 @@ void setup()
   motor.writeMicroseconds(MAX_SIGNAL);    
   Serial.println("Now writing maximum output.");
 
-  printWait(3000, 500);
+  printWait(3000, 400);
 
   Serial.println("Sending minimum output");
   motor.writeMicroseconds(MIN_SIGNAL);
 
-  printWait(3000, 500);
+  printWait(3000, 400);
   
 } 
  
@@ -59,24 +73,33 @@ void loop()
     printWait(1000, 200);
     yo("Waiting for remote...", chuck.getStatus(), true);
   }
+
+  if (!rdy){
+    rdy = true;
+    chuck.calibrateJoy();
+    digitalWrite(LED_PIN, LOW);
+    Serial.println("------------------------| READY!!! |---------------------------");  
+  }  
   
-  //READY!!!  
-  digitalWrite(LED_PIN, LOW);
+  //read potentiometers and set steps
+  acc_step = map(analogRead(ACC_POT_PIN), 0, 1024, MIN_ACC_STEP, MAX_ACC_STEP);
+  ntrl_step = map(analogRead(NTRL_POT_PIN), 0, 1024, MIN_NTRL_STEP, MAX_NTRL_STEP);
+  brk_step = map(analogRead(BRK_POT_PIN), 0, 1024, MIN_BRK_STEP, MAX_BRK_STEP);
 
   chuck.update();
   
   if (chuck.zActive()){
     acc = (chuck.readJoyY());
-    acc = map(acc, -128, 128, -1*INT_SPEED, INT_SPEED);
+    acc = map(acc, -128, 128, -1*acc_step, acc_step);
   
     spd += acc;
   }else{
-    spd -= INT_SPEED;
+    spd += ntrl_step;
   }    
   spd = max(MIN_SPEED, spd);
   spd = min(spd, MAX_SPEED);
   
-  if (chuck.cActive()) spd -= (10 * INT_SPEED); //BRAKE!
+  if (chuck.cActive()) spd += brk_step; //BRAKE!
 
   yo("spd", spd, false);
 
