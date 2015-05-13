@@ -6,6 +6,7 @@
 #define INT_SPEED 10
 #define MIN_SPEED 0
 #define MAX_SPEED 10000
+#define LED_PIN 8
 #define MOTOR_PIN 9
 #define SERVO_PIN 6
 #define POT_PIN A0
@@ -26,6 +27,10 @@ int servo_signal; //the signal to pass to the motor
 void setup() 
 { 
   Serial.begin(9600);
+  
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);
+  
   Serial.println("Program begin...");
   Serial.println("This program will calibrate the ESC.");
 
@@ -35,12 +40,12 @@ void setup()
   motor.writeMicroseconds(MAX_SIGNAL);    
   Serial.println("Now writing maximum output.");
 
-  printWait(3);
+  printWait(3000, 500);
 
   Serial.println("Sending minimum output");
   motor.writeMicroseconds(MIN_SIGNAL);
 
-  printWait(3);
+  printWait(3000, 500);
   
 } 
  
@@ -51,10 +56,13 @@ void loop()
   while (!chuck.getStatus()){
     chuck.begin();
     chuck.update();
-    delay(1000);
-    yoln("chuck.getStatus", chuck.getStatus());
+    printWait(1000, 200);
+    yo("Waiting for remote...", chuck.getStatus(), true);
   }
-    
+  
+  //READY!!!  
+  digitalWrite(LED_PIN, LOW);
+
   chuck.update();
   
   if (chuck.zActive()){
@@ -70,7 +78,7 @@ void loop()
   
   if (chuck.cActive()) spd -= (10 * INT_SPEED); //BRAKE!
 
-  yo("spd", spd);
+  yo("spd", spd, false);
 
   servo_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 179);
   srv.write(servo_signal);
@@ -78,31 +86,10 @@ void loop()
   motor_signal = map(spd, MIN_SPEED, MAX_SPEED, MIN_SIGNAL, MAX_SIGNAL);
   motor.writeMicroseconds(motor_signal);    
 
-  yo("motor_signal", motor_signal);
+  yo("motor_signal", motor_signal, false);
   Serial.println();
   delay(10);                           
 }
 
 
-void printWait(int secs){
-  while (secs > 0){
-    Serial.println(secs);
-    secs--;
-    delay(970);
-  }
-}
 
-void yo(String msg, int val){
-  Serial.print(msg);
-  Serial.print(": ");
-  Serial.print(val);
-  Serial.print("\t");
-}
-
-void yoln(String msg, int val){
-  Serial.print(msg);
-  Serial.print(": ");
-  Serial.print(val);
-  Serial.print("\t");
-  Serial.println();
-}
