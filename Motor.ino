@@ -12,9 +12,8 @@
 #define MIN_BRK_STEP -10
 #define MAX_BRK_STEP -2000
 
-#define LED_PIN 8
+#define LED_PIN 6
 #define MOTOR_PIN 9
-#define SERVO_PIN 6
 #define ACC_POT_PIN A2
 #define NTRL_POT_PIN A1
 #define BRK_POT_PIN A0
@@ -24,7 +23,6 @@
 #include "WiiChuck.h"
 
 Servo motor; 
-Servo srv; 
 WiiChuck chuck = WiiChuck();
  
 int acc_step = 10;
@@ -34,7 +32,7 @@ int brk_step = -100;
 int acc = 0; //acceleration 
 int spd = 0; //speed 
 int motor_signal; //the signal to pass to the motor
-int servo_signal; //the signal to pass to the motor
+int led_signal; //the signal to pass to the led
 
 boolean rdy = false;
 
@@ -47,8 +45,6 @@ void setup()
   
   Serial.println("Program begin...");
   Serial.println("This program will calibrate the ESC.");
-
-  srv.attach(SERVO_PIN);
 
   motor.attach(MOTOR_PIN);
   motor.writeMicroseconds(MAX_SIGNAL);    
@@ -103,8 +99,8 @@ void loop()
 
   yo("spd", spd, false);
 
-  servo_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 179);
-  srv.write(servo_signal);
+  led_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 63);
+  analogWrite(LED_PIN, led_signal);
 
   motor_signal = map(spd, MIN_SPEED, MAX_SPEED, MIN_SIGNAL, MAX_SIGNAL);
   motor.writeMicroseconds(motor_signal);    
