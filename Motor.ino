@@ -1,7 +1,7 @@
 // Controlling a servo position using a potentiometer (variable resistor) 
 // by Michal Rinott <http://people.interaction-ivrea.it/m.rinott> 
 
-#define MIN_SIGNAL 900
+#define MIN_SIGNAL 1000
 #define MAX_SIGNAL 2000
 #define MIN_SPEED 0
 #define MAX_SPEED 10000
@@ -13,7 +13,7 @@
 #define MAX_BRK_STEP -2000
 
 #define LED_PIN 6
-#define MOTOR_PIN 9
+#define MOTOR_PIN 3
 #define ACC_POT_PIN A2
 #define NTRL_POT_PIN A1
 #define BRK_POT_PIN A0
@@ -50,12 +50,12 @@ void setup()
   motor.writeMicroseconds(MAX_SIGNAL);    
   Serial.println("Now writing maximum output.");
 
-  printWait(3000, 400);
+  printWait(5000, 400);
 
   Serial.println("Sending minimum output");
   motor.writeMicroseconds(MIN_SIGNAL);
 
-  printWait(3000, 400);
+  printWait(5000, 400);
   
 } 
  
@@ -64,6 +64,7 @@ void loop()
 
   //wait for the remote control to connect
   while (!chuck.getStatus()){
+    motor.writeMicroseconds(MIN_SIGNAL);
     chuck.begin();
     chuck.update();
     printWait(1000, 200);
@@ -78,9 +79,13 @@ void loop()
   }  
   
   //read potentiometers and set steps
-  acc_step = map(analogRead(ACC_POT_PIN), 0, 1024, MIN_ACC_STEP, MAX_ACC_STEP);
-  ntrl_step = map(analogRead(NTRL_POT_PIN), 0, 1024, MIN_NTRL_STEP, MAX_NTRL_STEP);
-  brk_step = map(analogRead(BRK_POT_PIN), 0, 1024, MIN_BRK_STEP, MAX_BRK_STEP);
+  acc_step = map(analogRead(ACC_POT_PIN), 1024, 0, MIN_ACC_STEP, MAX_ACC_STEP);
+  ntrl_step = map(analogRead(NTRL_POT_PIN), 1024, 0, MIN_NTRL_STEP, MAX_NTRL_STEP);
+  brk_step = map(analogRead(BRK_POT_PIN), 1024, 0, MIN_BRK_STEP, MAX_BRK_STEP);
+
+  yo("acc_step", acc_step, false);
+  yo("ntrl_step", ntrl_step, false);
+  yo("brk_step", brk_step, false);
 
   chuck.update();
   
@@ -92,10 +97,11 @@ void loop()
   }else{
     spd += ntrl_step;
   }    
-  spd = max(MIN_SPEED, spd);
-  spd = min(spd, MAX_SPEED);
-  
+ 
   if (chuck.cActive()) spd += brk_step; //BRAKE!
+
+  spd = max(MIN_SPEED, spd);
+  spd = min(spd, MAX_SPEED); 
 
   yo("spd", spd, false);
 
