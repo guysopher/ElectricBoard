@@ -64,6 +64,7 @@ void loop()
 
   //wait for the remote control to connect
   while (!chuck.getStatus()){
+    rdy = false;
     motor.writeMicroseconds(MIN_SIGNAL);
     chuck.begin();
     chuck.update();
@@ -71,6 +72,7 @@ void loop()
     yo("Waiting for remote...", chuck.getStatus(), true);
   }
 
+  //after first nunchuck sync - calibrate joystick and led
   if (!rdy){
     rdy = true;
     chuck.calibrateJoy();
@@ -80,38 +82,45 @@ void loop()
   
   //read potentiometers and set steps
   acc_step = map(analogRead(ACC_POT_PIN), 1024, 0, MIN_ACC_STEP, MAX_ACC_STEP);
-  ntrl_step = map(analogRead(NTRL_POT_PIN), 1024, 0, MIN_NTRL_STEP, MAX_NTRL_STEP);
-  brk_step = map(analogRead(BRK_POT_PIN), 1024, 0, MIN_BRK_STEP, MAX_BRK_STEP);
-
   yo("acc_step", acc_step, false);
+
+  ntrl_step = map(analogRead(NTRL_POT_PIN), 1024, 0, MIN_NTRL_STEP, MAX_NTRL_STEP);
   yo("ntrl_step", ntrl_step, false);
+
+  brk_step = map(analogRead(BRK_POT_PIN), 1024, 0, MIN_BRK_STEP, MAX_BRK_STEP);
   yo("brk_step", brk_step, false);
 
+  //read the nunchuck signal and set the speed
   chuck.update();
-  
-  if (chuck.zActive()){
+  if (chuck.cActive()){
+    //BRAKE
+    spd += brk_step;
+  }else if (chuck.zActive()){
+    //ACCELARATION button is pressed - use joystick to accelarate
     acc = (chuck.readJoyY());
     acc = map(acc, -128, 128, -1*acc_step, acc_step);
   
     spd += acc;
-  }else{
+  } else {
+    //No button is pressed - decend slowly
     spd += ntrl_step;
   }    
  
-  if (chuck.cActive()) spd += brk_step; //BRAKE!
-
+  // make sure the speed is within the min/max limits
   spd = max(MIN_SPEED, spd);
   spd = min(spd, MAX_SPEED); 
 
   yo("spd", spd, false);
 
+  //signal the speed with the intensity of the led
   led_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 63);
   analogWrite(LED_PIN, led_signal);
 
+  //set the signal for the motor
   motor_signal = map(spd, MIN_SPEED, MAX_SPEED, MIN_SIGNAL, MAX_SIGNAL);
   motor.writeMicroseconds(motor_signal);    
-
   yo("motor_signal", motor_signal, false);
+  
   Serial.println();
   delay(10);                           
 }
