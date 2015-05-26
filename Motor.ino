@@ -12,7 +12,7 @@
 #define MIN_BRK_STEP -10
 #define MAX_BRK_STEP -2000
 
-#define LED_PIN 6
+#define LED_PIN 13
 #define MOTOR_PIN 3
 #define ACC_POT_PIN A2
 #define NTRL_POT_PIN A1
@@ -62,6 +62,11 @@ void setup()
 void loop() 
 { 
 
+  for (int i=0; i<2000; i++){
+      motor.writeMicroseconds(i);
+    delay(10);    
+  }
+
   //wait for the remote control to connect
   while (!chuck.getStatus()){
     rdy = false;
@@ -93,13 +98,12 @@ void loop()
   //read the nunchuck signal and set the speed
   chuck.update();
   if (chuck.cActive()){
-    //BRAKE
+    //BRAKE button
     spd += brk_step;
   }else if (chuck.zActive()){
     //ACCELARATION button is pressed - use joystick to accelarate
     acc = (chuck.readJoyY());
     acc = map(acc, -128, 128, -1*acc_step, acc_step);
-  
     spd += acc;
   } else {
     //No button is pressed - decend slowly
