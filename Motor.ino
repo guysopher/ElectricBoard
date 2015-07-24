@@ -1,7 +1,7 @@
 // Controlling a servo position using a potentiometer (variable resistor) 
 // by Michal Rinott <http://people.interaction-ivrea.it/m.rinott> 
 
-#define MIN_SIGNAL 1000
+#define MIN_SIGNAL 700
 #define MAX_SIGNAL 2000
 #define MIN_SPEED 0
 #define MAX_SPEED 10000
@@ -12,19 +12,24 @@
 #define MIN_BRK_STEP -10
 #define MAX_BRK_STEP -2000
 
-#define LED_PIN 13
+#define LED_PIN 9
 #define MOTOR_PIN 3
 #define ACC_POT_PIN A2
 #define NTRL_POT_PIN A1
 #define BRK_POT_PIN A0
 
+#define SERVO_PIN_LOW 8
+#define SERVO_PIN_HIGH 7
+#define SERVO_PIN_SIGNAL 6
+
 #include <Servo.h> 
 #include <Wire.h>
 #include "WiiChuck.h"
 
+Servo gauge;
 Servo motor; 
 WiiChuck chuck = WiiChuck();
- 
+
 int acc_step = 10;
 int ntrl_step = -10;
 int brk_step = -100;
@@ -40,6 +45,13 @@ void setup()
 { 
   Serial.begin(9600);
   
+//  pinMode(SERVO_PIN_LOW, OUTPUT);
+//  digitalWrite(SERVO_PIN_LOW, LOW);
+//  pinMode(SERVO_PIN_HIGH, OUTPUT);
+//  digitalWrite(SERVO_PIN_HIGH, HIGH);
+//  gauge.attach(SERVO_PIN_SIGNAL);
+//  gauge.write(90);    
+
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
   
@@ -57,15 +69,15 @@ void setup()
 
   printWait(5000, 400);
   
+//  Serial.println("Sending middle output");
+//  motor.writeMicroseconds((MIN_SIGNAL + MAX_SIGNAL) / 2);
+//
+//  printWait(2000, 400);
+  
 } 
  
 void loop() 
 { 
-
-  for (int i=0; i<2000; i++){
-      motor.writeMicroseconds(i);
-    delay(10);    
-  }
 
   //wait for the remote control to connect
   while (!chuck.getStatus()){
@@ -117,7 +129,8 @@ void loop()
   yo("spd", spd, false);
 
   //signal the speed with the intensity of the led
-  led_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 63);
+  led_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 255);
+  yo("led_signal", led_signal, false);
   analogWrite(LED_PIN, led_signal);
 
   //set the signal for the motor

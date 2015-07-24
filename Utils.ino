@@ -15,6 +15,17 @@ void printWait(int milis, int ledInterval){
   }
 }
 
+double lastBlink = 0;
+boolean lastLed = LOW;
+void blinkLed(int interval) {
+  double curBlink = millis();
+  if ((curBlink - interval) > lastBlink) {
+    lastBlink = curBlink;
+    lastLed = !lastLed;
+    digitalWrite(LED_PIN, lastLed);
+  }
+}
+
 void yo(String msg, int val, boolean nl){
   Serial.print(msg);
   Serial.print(": ");
