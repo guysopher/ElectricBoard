@@ -3,6 +3,7 @@
 
 #define MIN_SIGNAL 700
 #define MAX_SIGNAL 2000
+#define SIGNAL_MARGIN 50
 #define MIN_SPEED 0
 #define MAX_SPEED 10000
 #define MIN_ACC_STEP 5
@@ -41,6 +42,9 @@ int led_signal; //the signal to pass to the led
 
 boolean rdy = false;
 
+boolean calibrate = false;
+boolean program_mode = true;
+
 void setup() 
 { 
   Serial.begin(9600);
@@ -56,23 +60,32 @@ void setup()
   digitalWrite(LED_PIN, HIGH);
   
   Serial.println("Program begin...");
-  Serial.println("This program will calibrate the ESC.");
 
   motor.attach(MOTOR_PIN);
-  motor.writeMicroseconds(MAX_SIGNAL);    
-  Serial.println("Now writing maximum output.");
-
-  printWait(5000, 400);
-
-  Serial.println("Sending minimum output");
-  motor.writeMicroseconds(MIN_SIGNAL);
-
-  printWait(5000, 400);
   
-//  Serial.println("Sending middle output");
-//  motor.writeMicroseconds((MIN_SIGNAL + MAX_SIGNAL) / 2);
-//
-//  printWait(2000, 400);
+  if (calibrate) {
+    Serial.println("This program will calibrate the ESC.");
+
+    motor.writeMicroseconds(MAX_SIGNAL);    
+    Serial.println("Now writing maximum output.");
+  
+    printWait(5000, 400);
+  
+    Serial.println("Sending minimum output");
+    motor.writeMicroseconds(MIN_SIGNAL);
+  
+    printWait(5000, 400);
+  } else if (program_mode) {
+    Serial.println("This program will enter programing mode.");
+
+    motor.writeMicroseconds(MAX_SIGNAL);    
+    Serial.println("Now writing maximum output.");
+  
+    printWait(7000, 400);
+   
+  } else {
+    motor.writeMicroseconds(MIN_SIGNAL);
+  }
   
 } 
  
@@ -109,37 +122,55 @@ void loop()
 
   //read the nunchuck signal and set the speed
   chuck.update();
-  if (chuck.cActive()){
-    //BRAKE button
-    spd += brk_step;
-  }else if (chuck.zActive()){
-    //ACCELARATION button is pressed - use joystick to accelarate
-    acc = (chuck.readJoyY());
-    acc = map(acc, -128, 128, -1*acc_step, acc_step);
-    spd += acc;
+
+  if (program_mode) {
+    
+    if (chuck.cActive() && chuck.zActive()){
+      motor_signal = ((MIN_SIGNAL + MAX_SIGNAL) / 2);
+    }else if (chuck.cActive()){
+      motor_signal = (MIN_SIGNAL);
+    }else if (chuck.zActive()){
+      motor_signal = (MAX_SIGNAL);
+    }    
+
+    motor.writeMicroseconds(motor_signal);    
+    yo("motor_signal", motor_signal, false);
+
   } else {
-    //No button is pressed - decend slowly
-    spd += ntrl_step;
-  }    
- 
-  // make sure the speed is within the min/max limits
-  spd = max(MIN_SPEED, spd);
-  spd = min(spd, MAX_SPEED); 
-
-  yo("spd", spd, false);
-
-  //signal the speed with the intensity of the led
-  led_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 255);
-  yo("led_signal", led_signal, false);
-  analogWrite(LED_PIN, led_signal);
-
-  //set the signal for the motor
-  motor_signal = map(spd, MIN_SPEED, MAX_SPEED, MIN_SIGNAL, MAX_SIGNAL);
-  motor.writeMicroseconds(motor_signal);    
-  yo("motor_signal", motor_signal, false);
+  
+    if (chuck.cActive()){
+      //BRAKE button
+      spd += brk_step;
+    }else if (chuck.zActive()){
+      //ACCELARATION button is pressed - use joystick to accelarate
+      acc = (chuck.readJoyY());
+      acc = map(acc, -128, 128, -1*acc_step, acc_step);
+      spd += acc;
+    } else {
+      //No button is pressed - decend slowly
+      spd += ntrl_step;
+    }    
+   
+    // make sure the speed is within the min/max limits
+    spd = max(MIN_SPEED, spd);
+    spd = min(spd, MAX_SPEED); 
+  
+    yo("spd", spd, false);
+  
+    //signal the speed with the intensity of the led
+    led_signal = map(spd, MIN_SPEED, MAX_SPEED, 0, 255);
+    yo("led_signal", led_signal, false);
+    analogWrite(LED_PIN, led_signal);
+  
+    //set the signal for the motor
+    motor_signal = map(spd, MIN_SPEED, MAX_SPEED, (MIN_SIGNAL+SIGNAL_MARGIN), (MAX_SIGNAL-SIGNAL_MARGIN));
+    motor.writeMicroseconds(motor_signal);    
+    yo("motor_signal", motor_signal, false);
+  
+}
   
   Serial.println();
-  delay(10);                           
+  delay(5);                           
 }
 
 
